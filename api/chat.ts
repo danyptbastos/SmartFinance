@@ -1,10 +1,14 @@
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
+  if (!apiKey) {
+    return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
+  }
 
   try {
     const { query, transactions } = req.body || {};
@@ -16,7 +20,8 @@ export default async function handler(req: any, res: any) {
       model: "gemini-3-flash-preview",
       contents: `Dados Financeiros (€): ${context}\nUsuário: ${query}`,
       config: {
-        systemInstruction: "Você é um consultor financeiro pessoal europeu. Moeda: Euro (€)."
+        systemInstruction:
+          "Você é um consultor financeiro pessoal europeu. Todas as moedas são em Euro (€). Seja direto e prático."
       }
     });
 
