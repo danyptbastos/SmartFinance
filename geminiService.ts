@@ -38,15 +38,16 @@ export const parseTransactionWithAI = async (userInput: string) => {
 };
 
 export const chatWithFinancialAI = async (history: any[], query: string, transactions: any[]) => {
-  const context = JSON.stringify(transactions.slice(0, 50));
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Dados Financeiros (em Euro €): ${context}\nUsuário: ${query}`,
-    config: {
-      systemInstruction: "Você é um consultor financeiro pessoal europeu que tem acesso ao extrato do usuário acima. Todas as moedas são em Euro (€). Responda perguntas sobre gastos, dê dicas de economia e faça projeções baseadas nos dados reais fornecidos. Seja amigável e direto."
-    }
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ history, query, transactions }),
   });
-  return response.text;
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Erro na API");
+
+  return data.text;
 };
 
 export const getHealthDiagnosis = async (score: number, summary: any, budgets: any[], goals: any[]) => {
