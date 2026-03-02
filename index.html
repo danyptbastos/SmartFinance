@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFinance AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-lime: #A3FF47;
+            --bg-deep: #080808;
+            --bg-card: #111111;
+            --bg-sidebar: #0B0B0B;
+            --text-muted: #52525B;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: #FFFFFF;
+            overflow-x: hidden;
+            margin: 0;
+            scroll-behavior: smooth;
+        }
+
+        /* Dynamic Aura Background */
+        .aura-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .aura-blob {
+            position: absolute;
+            width: 80vw;
+            height: 80vw;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            transition: background-color 2s ease, transform 10s infinite alternate;
+        }
+
+        .aura-blob-1 { top: -20%; right: -20%; background-color: var(--aura-color, #A3FF47); }
+        .aura-blob-2 { bottom: -20%; left: -20%; background-color: var(--aura-color-2, #3b82f6); }
+
+        /* Bento Polish - Glow Follow Effect */
+        .glow-card {
+            position: relative;
+            background: #111111;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .glow-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .glow-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(
+                400px circle at var(--mouse-x) var(--mouse-y),
+                rgba(255, 255, 255, 0.06),
+                transparent 40%
+            );
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glow-card-border {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: radial-gradient(
+                400px circle at var(--mouse-x) var(--mouse-y),
+                rgba(163, 255, 71, 0.3),
+                transparent 40%
+            );
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Gradient Text Animation */
+        .animate-gradient-text {
+            background: linear-gradient(90deg, #FFFFFF, #A3FF47, #3b82f6, #FFFFFF);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-text 8s linear infinite;
+        }
+
+        @keyframes gradient-text {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        /* Títulos e Tipografia Premium */
+        .menu-section-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.2em;
+            margin-bottom: 12px;
+            margin-left: 12px;
+            text-transform: uppercase;
+        }
+
+        .nav-item-active {
+            background: linear-gradient(90deg, rgba(163, 255, 71, 0.08) 0%, rgba(163, 255, 71, 0.02) 100%);
+            border: 1px solid rgba(163, 255, 71, 0.1);
+            position: relative;
+            color: #FFFFFF !important;
+            border-radius: 12px;
+        }
+
+        .nav-item-active::before {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 20%;
+            bottom: 20%;
+            width: 3px;
+            background-color: var(--primary-lime);
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 15px var(--primary-lime);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-lime);
+            color: #000000;
+            font-weight: 800;
+            border-radius: 14px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02) translateY(-2px);
+            box-shadow: 0 10px 30px rgba(163, 255, 71, 0.4);
+        }
+
+        .glass-card {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+        }
+
+        /* Nudges UI */
+        .nudge-tag {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(163, 255, 71, 0.1);
+            color: var(--primary-lime);
+            border: 1px solid rgba(163, 255, 71, 0.1);
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+
+        .fade-up { animation: fadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bg-grid {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .pricing-border-flow {
+            position: relative;
+        }
+        .pricing-border-flow::after {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 26px;
+            background: linear-gradient(90deg, transparent, var(--primary-lime), transparent);
+            background-size: 200% 100%;
+            animation: border-flow 4s linear infinite;
+            z-index: -1;
+        }
+        @keyframes border-flow {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

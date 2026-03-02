@@ -1,0 +1,8 @@
+{
+  "name": "SmartFinance AI",
+  "description": "Uma plataforma de gestão financeira inteligente que utiliza IA para categorizar gastos, fornecer insights personalizados e simplificar o controle das suas economias.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
