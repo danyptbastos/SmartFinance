@@ -1,5 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 
+if (req.method === "GET") {
+  return res.status(200).json({
+    vercelEnv: process.env.VERCEL_ENV || null,
+    hasGeminiKey: !!process.env.GEMINI_API_KEY,
+    geminiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0
+  });
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
