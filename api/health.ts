@@ -1,4 +1,21 @@
+export const config = { runtime: "nodejs" };
+
 import { GoogleGenAI, Type } from "@google/genai";
+
+async function readJson(req: any) {
+  return await new Promise<any>((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk: any) => (data += chunk));
+    req.on("end", () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on("error", reject);
+  });
+}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -11,7 +28,8 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { score, summary, budgets, goals } = req.body || {};
+    const body = await readJson(req);
+    const { score, summary, budgets, goals } = body || {};
 
     const ai = new GoogleGenAI({ apiKey });
 
@@ -46,10 +64,7 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    // @google/genai retorna texto em response.text
-    const text = response.text;
-    const json = JSON.parse(text);
-
+    const json = JSON.parse(response.text);
     return res.status(200).json(json);
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || "Error" });
