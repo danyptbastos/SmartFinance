@@ -76,6 +76,35 @@ import { CATEGORIES as INITIAL_CATEGORIES, INITIAL_ACCOUNTS, INITIAL_TRANSACTION
 import { parseTransactionWithAI, chatWithFinancialAI, getHealthDiagnosis } from './geminiService';
 import VoiceAssistant from './VoiceAssistant';
 
+const STORAGE_PREFIX = "sf_v1";
+
+function userKey(email?: string) {
+  const safe = (email || "guest").trim().toLowerCase();
+  return `${STORAGE_PREFIX}:${safe}`;
+}
+
+function storageGet<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function storageSet(key: string, value: any) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+function storageClearUser(email?: string) {
+  const prefix = userKey(email) + ":";
+  Object.keys(localStorage).forEach((k) => {
+    if (k.startsWith(prefix)) localStorage.removeItem(k);
+  });
+}
+
 // --- Componentes de UI ---
 
 interface GlowCardProps {
@@ -315,32 +344,44 @@ const App: React.FC = () => {
   const [authName, setAuthName] = useState('');
 
   // Estados da Plataforma Financeira
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('sf_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-  });
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('sf_categories');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
-  const [goals, setGoals] = useState<Goal[]>(() => {
-    const saved = localStorage.getItem('sf_goals');
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
-  });
-  const [debts, setDebts] = useState<Debt[]>(() => {
-    const saved = localStorage.getItem('sf_debts');
-    return saved ? JSON.parse(saved) : INITIAL_DEBTS;
-  });
-  const [accounts, setAccounts] = useState<Account[]>(() => {
-    const saved = localStorage.getItem('sf_accounts');
-    return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
-  });
 
-  useEffect(() => { localStorage.setItem('sf_transactions', JSON.stringify(transactions)); }, [transactions]);
-  useEffect(() => { localStorage.setItem('sf_categories', JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem('sf_goals', JSON.stringify(goals)); }, [goals]);
-  useEffect(() => { localStorage.setItem('sf_debts', JSON.stringify(debts)); }, [debts]);
-  useEffect(() => { localStorage.setItem('sf_accounts', JSON.stringify(accounts)); }, [accounts]);
+// 1) primeiro o currentUserEmail
+const [currentUserEmail, setCurrentUserEmail] = useState<string>(() =>
+  storageGet(`${STORAGE_PREFIX}:currentUser`, "guest")
+);
+
+// 2) depois o baseKey (derivado)
+const baseKey = userKey(currentUserEmail);
+
+// começa LIMPO (sem seeds fake)
+const [transactions, setTransactions] = useState<Transaction[]>(() =>
+  storageGet(`${baseKey}:transactions`, [])
+);
+
+const [categories, setCategories] = useState<Category[]>(() =>
+  storageGet(`${baseKey}:categories`, INITIAL_CATEGORIES)
+);
+
+const [goals, setGoals] = useState<Goal[]>(() =>
+  storageGet(`${baseKey}:goals`, [])
+);
+
+const [debts, setDebts] = useState<Debt[]>(() =>
+  storageGet(`${baseKey}:debts`, [])
+);
+
+const [accounts, setAccounts] = useState<Account[]>(() =>
+  storageGet(`${baseKey}:accounts`, [])
+);
+
+useEffect(() => { storageSet(`${baseKey}:transactions`, transactions); }, [baseKey, transactions]);
+useEffect(() => { storageSet(`${baseKey}:categories`, categories); }, [baseKey, categories]);
+useEffect(() => { storageSet(`${baseKey}:goals`, goals); }, [baseKey, goals]);
+useEffect(() => { storageSet(`${baseKey}:debts`, debts); }, [baseKey, debts]);
+useEffect(() => { storageSet(`${baseKey}:accounts`, accounts); }, [baseKey, accounts]);
+useEffect(() => {
+  storageSet(`${STORAGE_PREFIX}:currentUser`, currentUserEmail);
+}, [currentUserEmail]);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'chat' | 'goals' | 'debts'>('dashboard');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -451,6 +492,20 @@ const App: React.FC = () => {
     setSelectedGoalToContribute(null); setContributionAmount('');
     setEditingTransactionId(null);
   };
+
+  const resetUserData = () => {
+  if (!window.confirm("Queres mesmo limpar tudo desta conta?")) return;
+
+  storageClearUser(currentUserEmail);
+
+  setTransactions([]);
+  setGoals([]);
+  setDebts([]);
+  setAccounts([]);
+  setCategories(INITIAL_CATEGORIES);
+
+  resetForm();
+};
 
   const handleManualSubmit = () => {
     if (!newTAmount || !newTDesc) {
@@ -615,8 +670,15 @@ const App: React.FC = () => {
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsAiLoading(true);
+  
+    const email = authEmail.trim().toLowerCase();
+  
     setTimeout(() => {
       setIsAiLoading(false);
+  
+      setCurrentUserEmail(email);
+      localStorage.setItem(`${STORAGE_PREFIX}:currentUser`, email);
+  
       setIsLoggedIn(true);
       setView('app');
     }, 1500);
@@ -793,8 +855,15 @@ const App: React.FC = () => {
         
         <div className="w-full flex items-center justify-center p-6 z-10">
           <div className="glass-card w-full max-w-md p-10 space-y-8 animate-in fade-in duration-700">
-            <button onClick={() => setView('landing')} className="absolute top-6 right-6 text-zinc-600 hover:text-white transition-colors"><X size={24} /></button>
-            <div className="text-center space-y-2">
+<button
+  onClick={() => {
+    setIsLoggedIn(false);
+    setView('landing');
+  }}
+  className="w-11 h-11 rounded-2xl flex items-center justify-center bg-white/5 text-zinc-400 border border-white/5"
+>
+  <LogOut size={18} />
+</button>            <div className="text-center space-y-2">
               <div className="flex justify-center mb-6">
                 <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
                   <div className="w-8 h-8 bg-white rounded-sm rotate-45 flex items-center justify-center"><div className="w-3 h-3 bg-black rounded-full"></div></div>
@@ -850,9 +919,16 @@ const App: React.FC = () => {
     );
   }
 
-  // --- PLATAFORMA PRINCIPAL ---
-  return (
-    <div className="flex h-screen bg-[#080808] text-white overflow-hidden">
+// --- PLATAFORMA PRINCIPAL ---
+
+if (!isLoggedIn) {
+  // volta pro login automaticamente
+  if (view === 'app') setView('auth');
+  return null;
+}
+
+return (
+  <div className="flex h-screen bg-[#080808] text-white overflow-hidden">
       <div className="aura-bg"><div className="aura-blob aura-blob-1" /><div className="aura-blob aura-blob-2" /></div>
 
       {isVoiceOpen && <VoiceAssistant onClose={() => setIsVoiceOpen(false)} onTransactionDetected={(text) => { parseTransactionWithAI(text).then(t => t && setTransactions(p => [t, ...p])); setIsVoiceOpen(false); }} />}
@@ -882,9 +958,18 @@ const App: React.FC = () => {
         </div>
 
         <div className="mt-auto space-y-4">
-          <button onClick={() => setView('landing')} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-zinc-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all mb-4">
-             <LogOut size={16} /> Encerrar Sessão
-          </button>
+        <button
+onClick={() => {
+  setIsLoggedIn(false);
+  setCurrentUserEmail("guest");
+  localStorage.removeItem(`${STORAGE_PREFIX}:currentUser`);
+  setView('landing');
+}}
+  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-zinc-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all mb-4"
+>
+  <LogOut size={16} /> Encerrar Sessão
+</button>
+
           <button onClick={() => { resetForm(); setModalMode('manual'); setIsAiModalOpen(true); }} className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-[10px] tracking-widest uppercase">
              <Plus size={18} strokeWidth={3} /> Nova Transação
           </button>
@@ -911,14 +996,37 @@ const App: React.FC = () => {
               )}
             </div>
             <div className="flex items-center gap-4">
-               <div className="lg:hidden">
-                 <button onClick={() => setView('landing')} className="w-11 h-11 rounded-2xl flex items-center justify-center bg-white/5 text-zinc-400 border border-white/5"><LogOut size={18} /></button>
-               </div>
-               <HealthScore score={score} onClick={() => { setModalMode('health'); setIsAiModalOpen(true); }} />
-               <button onClick={() => setIsStealthMode(!isStealthMode)} className={`w-11 h-11 rounded-2xl flex items-center justify-center border border-white/5 transition-all ${isStealthMode ? 'bg-[#A3FF47]/10 text-[#A3FF47]' : 'bg-white/5 text-zinc-400'}`}>{isStealthMode ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-            </div>
-          </header>
+              <div className="lg:hidden">
+              <button
+  onClick={() => {
+    setIsLoggedIn(false);
+    setView('landing');
+  }}
+  className="w-11 h-11 rounded-2xl flex items-center justify-center bg-white/5 text-zinc-400 border border-white/5"
+>
+  <LogOut size={18} />
+</button>
 
+              <HealthScore
+                score={score}
+                onClick={() => {
+                  setModalMode('health');
+                  setIsAiModalOpen(true);
+                }}
+              />
+
+              <button
+                onClick={() => setIsStealthMode(!isStealthMode)}
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center border border-white/5 transition-all ${
+                  isStealthMode ? 'bg-[#A3FF47]/10 text-[#A3FF47]' : 'bg-white/5 text-zinc-400'
+                }`}
+                title={isStealthMode ? 'Desativar modo stealth' : 'Ativar modo stealth'}
+              >
+                {isStealthMode ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            </div>
+            
           {activeTab === 'dashboard' ? (
             <div className="space-y-10 fade-up">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1207,6 +1315,7 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+          </header>
         </main>
 
         <aside className="hidden xl:flex w-80 bg-[#0B0B0B] border-l border-white/5 p-10 shrink-0 flex-col overflow-y-auto custom-scrollbar">
